@@ -1,4 +1,4 @@
-package com.ecowatch.dashboard;
+package com.ui.dashboard;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
