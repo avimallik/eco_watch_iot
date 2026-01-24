@@ -91,14 +91,27 @@
 
       <div class="collapse navbar-collapse" id="topNav">
         <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+
+          <!-- Home -->
           <li class="nav-item">
             <a class="nav-link" th:href="@{/}"><i class="bi bi-house-door me-1"></i> Home</a>
           </li>
+
+          <!-- Threshold -->
           <li class="nav-item">
             <a class="nav-link active fw-semibold" th:href="@{/threshold}">
               <i class="bi bi-sliders2-vertical me-1"></i> Threshold Setting
             </a>
           </li>
+
+          <!-- Save ESP IP -->
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/esp-ip}">
+              <i class="bi bi-router-fill me-1"></i> Save ESP IP
+            </a>
+          </li>
+
+
         </ul>
       </div>
     </div>
