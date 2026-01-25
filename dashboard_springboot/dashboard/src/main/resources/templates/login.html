@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    body { background: linear-gradient(135deg, #f6f7fb 0%, #eef2ff 100%); min-height: 100vh; }
+    .page-wrap { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:24px 12px; }
+    .card-glass { background: rgba(255,255,255,0.9); border:1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.10); border-radius: 18px; max-width: 520px; width: 100%; overflow:hidden; }
+    .card-header-soft { background: transparent; border-bottom: 1px solid rgba(0,0,0,0.06); padding: 18px 20px; }
+    .badge-soft { display:inline-flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px;
+      background: rgba(13,110,253,0.10); color:#0d6efd; font-weight:700; }
+    .form-body { padding: 20px; }
+    .input-group-text { background: #f7f8fb; }
+    .btn-primary { border-radius: 12px; padding: 10px 14px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="card card-glass">
+      <div class="card-header card-header-soft">
+        <div class="badge-soft">
+          <i class="bi bi-shield-lock-fill"></i>
+          <span>Login (API access)</span>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div th:if="${param.registered}" class="alert alert-success">Registration complete! Please login.</div>
+        <div th:if="${param.logout}" class="alert alert-info">You have been logged out.</div>
+        <div th:if="${param.error}" class="alert alert-danger">Invalid email or password.</div>
+
+        <!-- Spring Security expects username/password -->
+        <form method="post" th:action="@{/login}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input class="form-control" type="text" name="username" placeholder="name@example.com" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input class="form-control" type="password" name="password" placeholder="Password" required>
+            </div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Sign in
+            </button>
+          </div>
+
+          <div class="text-center mt-3">
+            <a th:href="@{/register}">Create an account</a>
+            <span class="mx-2">|</span>
+            <a th:href="@{/threshold}">Go to Threshold (public)</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
