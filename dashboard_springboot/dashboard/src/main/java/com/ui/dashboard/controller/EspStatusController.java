@@ -25,7 +25,7 @@ public class EspStatusController {
     @GetMapping(value = "/api/esp/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Map<String, Object>> status() {
 
-        // 1) TBL_ESP_IP থেকে last ID এর IP
+       
         String espIp = jdbcTemplate.queryForObject(
                 "SELECT IP FROM TBL_ESP_IP WHERE ID = (SELECT MAX(ID) FROM TBL_ESP_IP)",
                 String.class

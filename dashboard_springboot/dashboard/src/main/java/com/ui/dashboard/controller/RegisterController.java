@@ -57,7 +57,6 @@ public class RegisterController {
                     email, hashedPassword, fullName
             );
 
-            // register করার পর login page এ পাঠালে convenient
             return "redirect:/login?registered";
 
         } catch (Exception e) {
