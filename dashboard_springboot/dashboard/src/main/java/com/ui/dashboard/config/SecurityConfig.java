@@ -1,48 +1,56 @@
 package com.ui.dashboard.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class SecurityConfig {
+
+    @Value("${app.jwt.secret}")
+    private String SECRET;
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        byte[] keyBytes = SECRET.getBytes(StandardCharsets.UTF_8);
+        SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key).build();
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
-
-        http.securityMatcher(new OrRequestMatcher(
-                new AntPathRequestMatcher("/api/**"),
-                new AntPathRequestMatcher("/login"),
-                new AntPathRequestMatcher("/logout")
-        ));
+        http.securityMatcher("/api/**");
 
         http.csrf(csrf -> csrf.disable());
 
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login").permitAll()
-                .requestMatchers("/logout").permitAll()
+                .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/esp/status").authenticated()
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
         );
 
-        http.formLogin(form -> form
-                .loginPage("/login")
-                .loginProcessingUrl("/login") // important: POST /login handled by security
-                .defaultSuccessUrl("/api/esp/status", true)
-                .failureUrl("/login?error")
-                .permitAll()
-        );
+        // ✅ Bearer token validate করবে
+        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(j -> {}));
 
-        http.logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-        );
+        // ✅ JSON 401
+        http.exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
+            res.setStatus(401);
+            res.setContentType("application/json");
+            res.getWriter().write("{\"error\":\"Unauthorized\"}");
+        }));
 
         return http.build();
     }
