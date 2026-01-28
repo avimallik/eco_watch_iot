@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sleek_circular_slider/sleek_circular_slider.dart';
 
 import '../api/status_service.dart';
 import 'login_page.dart';
@@ -103,7 +104,7 @@ class _DashboardPageState extends State<DashboardPage> {
       });
 
       // alarm logic: any 1 => alarm ON
-      final shouldAlarm = (statusTemp == 1) || (statusMq2 == 1);
+      final shouldAlarm = (st == 1) || (sm == 1);
       if (shouldAlarm) {
         await _startAlarm();
       } else {
@@ -112,16 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      // token invalid হলে Login page এ পাঠাতে চাইলে uncomment কর:
-      // await _logout();
     }
-  }
-
-  double _ratio(double? current, double? threshold) {
-    if (current == null || threshold == null) return 0.0;
-    if (threshold <= 0) return 0.0;
-    final r = current / threshold;
-    return min(max(r, 0.0), 1.0);
   }
 
   Future<void> _startAlarm() async {
@@ -129,11 +121,12 @@ class _DashboardPageState extends State<DashboardPage> {
     _alarmPlaying = true;
 
     try {
+      await _player.stop();
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.setVolume(1.0);
       await _player.play(AssetSource("alarm.mp3"));
     } catch (_) {
-      // silent fail (asset/pubspec/permission সমস্যা হলে এখানে আসতে পারে)
+      _alarmPlaying = false;
     }
 
     if (mounted) setState(() {});
@@ -171,11 +164,20 @@ class _DashboardPageState extends State<DashboardPage> {
     super.dispose();
   }
 
+  double? _toDouble(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  int _toInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final tempRatio = _ratio(currentTemp, threshTemp);
-    final mq2Ratio = _ratio(currentMq2, threshMq2);
-
     final alarmOn = (statusTemp == 1) || (statusMq2 == 1);
 
     return Scaffold(
@@ -245,7 +247,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 18),
 
-                  // Gauges row
+                  // ✅ Gauges (পাশাপাশি)
                   Row(
                     children: [
                       Expanded(
@@ -254,8 +256,8 @@ class _DashboardPageState extends State<DashboardPage> {
                           unit: "°C",
                           current: currentTemp,
                           threshold: threshTemp,
-                          ratio: tempRatio,
                           status: statusTemp,
+                          gaugeSize: 120,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -265,13 +267,14 @@ class _DashboardPageState extends State<DashboardPage> {
                           unit: "",
                           current: currentMq2,
                           threshold: threshMq2,
-                          ratio: mq2Ratio,
                           status: statusMq2,
+                          gaugeSize: 120,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+
+                  const SizedBox(height: 12),
 
                   // Humidity Card
                   Card(
@@ -296,13 +299,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 2),
                                 Text(
                                   currentHum == null
                                       ? "-"
                                       : "${currentHum!.toStringAsFixed(1)} %",
                                   style: const TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
@@ -313,24 +316,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                   ),
-
-                  // ✅ "Auto refresh..." intentionally removed
                 ],
               ),
             ),
     );
-  }
-
-  double? _toDouble(dynamic v) {
-    if (v == null) return null;
-    if (v is num) return v.toDouble();
-    return double.tryParse(v.toString());
-  }
-
-  int _toInt(dynamic v) {
-    if (v == null) return 0;
-    if (v is num) return v.toInt();
-    return int.tryParse(v.toString()) ?? 0;
   }
 }
 
@@ -339,25 +328,30 @@ class _GaugeCard extends StatelessWidget {
   final String unit;
   final double? current;
   final double? threshold;
-  final double ratio; // 0..1
   final int status; // 0/1
+  final double gaugeSize; // px
 
   const _GaugeCard({
     required this.title,
     required this.unit,
     required this.current,
     required this.threshold,
-    required this.ratio,
     required this.status,
+    this.gaugeSize = 220,
   });
 
   @override
   Widget build(BuildContext context) {
     final over = status == 1;
 
-    final currentText = current == null
+    final centerText = current == null
         ? "-"
         : "${current!.toStringAsFixed(1)}$unit";
+
+    final t = (threshold == null || threshold! <= 0) ? 100.0 : threshold!;
+
+    // clamp returns num -> convert to double
+    final c = (current ?? 0.0).clamp(0.0, t).toDouble();
 
     final thresholdText = threshold == null
         ? "Threshold: -"
@@ -367,9 +361,8 @@ class _GaugeCard extends StatelessWidget {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
               children: [
@@ -388,45 +381,50 @@ class _GaugeCard extends StatelessWidget {
                 ),
               ],
             ),
-
-            const SizedBox(height: 14),
-
-            // ✅ 1) Value ABOVE gauge
-            Text(
-              currentText,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ✅ 2) Bigger gauge
-            SizedBox(
-              width: 100,
-              height: 100,
-              child: CircularProgressIndicator(
-                value: ratio,
-                strokeWidth: 12,
-                backgroundColor: Colors.grey.withOpacity(.22),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  over ? Colors.red : Colors.deepPurple,
+            const SizedBox(height: 25),
+            Center(
+              child: SizedBox(
+                width: gaugeSize,
+                height: gaugeSize,
+                child: SleekCircularSlider(
+                  min: 0.0,
+                  max: t,
+                  initialValue: c,
+                  appearance: CircularSliderAppearance(
+                    startAngle: 150,
+                    angleRange: 240,
+                    customWidths: CustomSliderWidths(
+                      trackWidth: 18,
+                      progressBarWidth: 18,
+                      handlerSize: 0,
+                    ),
+                    customColors: CustomSliderColors(
+                      trackColor: Colors.grey.withOpacity(.18),
+                      progressBarColor: over ? Colors.red : Colors.deepPurple,
+                      hideShadow: true,
+                    ),
+                    infoProperties: InfoProperties(
+                      mainLabelStyle: TextStyle(
+                        fontSize: gaugeSize * 0.16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      modifier: (_) => centerText,
+                    ),
+                  ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            // ✅ 3) Threshold below gauge
+            const SizedBox(height: 5),
             Text(
               thresholdText,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: Colors.grey.shade700,
                 fontWeight: FontWeight.w700,
               ),
+              textAlign: TextAlign.center,
             ),
-
-            const SizedBox(height: 12),
-
+            const SizedBox(height: 10),
             Text(
               over ? "EXCEEDED" : "NORMAL",
               style: TextStyle(
