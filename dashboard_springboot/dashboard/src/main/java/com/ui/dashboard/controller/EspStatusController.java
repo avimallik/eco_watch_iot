@@ -29,9 +29,9 @@ public class EspStatusController {
     @GetMapping(value = "/api/esp/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Map<String, Object>> status(@AuthenticationPrincipal Jwt jwt) {
 
-        // ✅ jwt null হবে না, কারণ endpoint authenticated()
+        // endpoint authenticated()
         try {
-            // 1) last URL from DB
+            // last URL from DB
             String url = jdbcTemplate.queryForObject(
                     "SELECT IP FROM TBL_ESP_IP WHERE ID = (SELECT MAX(ID) FROM TBL_ESP_IP)",
                     String.class
@@ -46,7 +46,7 @@ public class EspStatusController {
                 url = "http://" + url;
             }
 
-            // 2) call ESP URL
+            // call ESP URL
             String body = webClient.get()
                     .uri(url)
                     .accept(MediaType.APPLICATION_JSON)
@@ -71,7 +71,7 @@ public class EspStatusController {
 
             EspReading reading = objectMapper.readValue(trimmed, EspReading.class);
 
-            // 3) last thresholds
+            // last thresholds
             Map<String, Object> th = jdbcTemplate.queryForMap(
                     "SELECT THRESH_TEMP, THRESH_MQ2 FROM TBL_THRESHOLD WHERE ID = (SELECT MAX(ID) FROM TBL_THRESHOLD)"
             );

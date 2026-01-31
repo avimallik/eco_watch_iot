@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +38,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // alarm
   final AudioPlayer _player = AudioPlayer();
   bool _alarmPlaying = false;
+  bool _alarmManuallyStopped = false; // ⭐ added
 
   @override
   void initState() {
@@ -103,12 +103,16 @@ class _DashboardPageState extends State<DashboardPage> {
         user = u;
       });
 
-      // alarm logic: any 1 => alarm ON
       final shouldAlarm = (st == 1) || (sm == 1);
+
+      // new danger → allow alarm again
       if (shouldAlarm) {
+        _alarmManuallyStopped = false;
+      }
+
+      // 🔴 alarm will NOT auto stop
+      if (shouldAlarm && !_alarmManuallyStopped) {
         await _startAlarm();
-      } else {
-        await _stopAlarm();
       }
     } catch (_) {
       if (!mounted) return;
@@ -141,6 +145,12 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (_) {}
 
     if (mounted) setState(() {});
+  }
+
+  // ⭐ STOP ALARM
+  Future<void> _manualStopAlarm() async {
+    _alarmManuallyStopped = true;
+    await _stopAlarm();
   }
 
   Future<void> _logout() async {
@@ -178,17 +188,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final alarmOn = (statusTemp == 1) || (statusMq2 == 1);
+    final alarmOn = _alarmPlaying;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Client Dashboard"),
+        title: const Text("Dashboard"),
         actions: [
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-          ),
+          IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
         ],
       ),
       body: _loading
@@ -198,7 +204,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // user + alarm badge
+                  // USER + ALARM
                   Row(
                     children: [
                       Expanded(
@@ -226,13 +232,6 @@ class _DashboardPageState extends State<DashboardPage> {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              alarmOn
-                                  ? Icons.warning_amber
-                                  : Icons.check_circle,
-                              color: alarmOn ? Colors.red : Colors.green,
-                            ),
-                            const SizedBox(width: 6),
                             Text(
                               alarmOn ? "ALARM" : "SAFE",
                               style: TextStyle(
@@ -240,6 +239,27 @@ class _DashboardPageState extends State<DashboardPage> {
                                 color: alarmOn ? Colors.red : Colors.green,
                               ),
                             ),
+                            if (alarmOn) ...[
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _manualStopAlarm,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                ),
+                                child: const Text(
+                                  "STOP ALARM",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -247,7 +267,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 18),
 
-                  // ✅ Gauges (পাশাপাশি)
+                  // GAUGES
                   Row(
                     children: [
                       Expanded(
@@ -276,7 +296,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   const SizedBox(height: 12),
 
-                  // Humidity Card
+                  // HUMIDITY (UNCHANGED)
                   Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(
@@ -323,13 +343,15 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+/// ---------------- GAUGE CARD (ORIGINAL UI) ----------------
+
 class _GaugeCard extends StatelessWidget {
   final String title;
   final String unit;
   final double? current;
   final double? threshold;
-  final int status; // 0/1
-  final double gaugeSize; // px
+  final int status;
+  final double gaugeSize;
 
   const _GaugeCard({
     required this.title,
@@ -349,8 +371,6 @@ class _GaugeCard extends StatelessWidget {
         : "${current!.toStringAsFixed(1)}$unit";
 
     final t = (threshold == null || threshold! <= 0) ? 100.0 : threshold!;
-
-    // clamp returns num -> convert to double
     final c = (current ?? 0.0).clamp(0.0, t).toDouble();
 
     final thresholdText = threshold == null
@@ -382,48 +402,32 @@ class _GaugeCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 25),
-            Center(
-              child: SizedBox(
-                width: gaugeSize,
-                height: gaugeSize,
-                child: SleekCircularSlider(
-                  min: 0.0,
-                  max: t,
-                  initialValue: c,
-                  appearance: CircularSliderAppearance(
-                    startAngle: 150,
-                    angleRange: 240,
-                    customWidths: CustomSliderWidths(
-                      trackWidth: 18,
-                      progressBarWidth: 18,
-                      handlerSize: 0,
-                    ),
-                    customColors: CustomSliderColors(
-                      trackColor: Colors.grey.withOpacity(.18),
-                      progressBarColor: over ? Colors.red : Colors.deepPurple,
-                      hideShadow: true,
-                    ),
-                    infoProperties: InfoProperties(
-                      mainLabelStyle: TextStyle(
-                        fontSize: gaugeSize * 0.16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                      modifier: (_) => centerText,
-                    ),
+            SizedBox(
+              width: gaugeSize,
+              height: gaugeSize,
+              child: SleekCircularSlider(
+                min: 0.0,
+                max: t,
+                initialValue: c,
+                appearance: CircularSliderAppearance(
+                  startAngle: 150,
+                  angleRange: 240,
+                  customWidths: CustomSliderWidths(
+                    trackWidth: 18,
+                    progressBarWidth: 18,
+                    handlerSize: 0,
                   ),
+                  customColors: CustomSliderColors(
+                    trackColor: Colors.grey.withOpacity(.18),
+                    progressBarColor: over ? Colors.red : Colors.deepPurple,
+                    hideShadow: true,
+                  ),
+                  infoProperties: InfoProperties(modifier: (_) => centerText),
                 ),
               ),
             ),
             const SizedBox(height: 5),
-            Text(
-              thresholdText,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(thresholdText),
             const SizedBox(height: 10),
             Text(
               over ? "EXCEEDED" : "NORMAL",

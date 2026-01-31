@@ -42,10 +42,10 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
         );
 
-        // ✅ Bearer token validate করবে
+        // Bearer token validate
         http.oauth2ResourceServer(oauth2 -> oauth2.jwt(j -> {}));
 
-        // ✅ JSON 401
+        // JSON 401
         http.exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
             res.setStatus(401);
             res.setContentType("application/json");
