@@ -38,7 +38,13 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
+
+                // ✅ public detection report API (no JWT needed)
+                .requestMatchers("/api/detection-report/**").permitAll()
+
+                // existing
                 .requestMatchers("/api/esp/status").authenticated()
+
                 .anyRequest().authenticated()
         );
 

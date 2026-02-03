@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import 'package:eco_watch_client/pages/detection_report_page.dart';
 
 import '../api/status_service.dart';
 import 'login_page.dart';
@@ -38,7 +39,7 @@ class _DashboardPageState extends State<DashboardPage> {
   // alarm
   final AudioPlayer _player = AudioPlayer();
   bool _alarmPlaying = false;
-  bool _alarmManuallyStopped = false; // ⭐ added
+  bool _alarmManuallyStopped = false;
 
   @override
   void initState() {
@@ -110,7 +111,7 @@ class _DashboardPageState extends State<DashboardPage> {
         _alarmManuallyStopped = false;
       }
 
-      // 🔴 alarm will NOT auto stop
+      // alarm will NOT auto stop
       if (shouldAlarm && !_alarmManuallyStopped) {
         await _startAlarm();
       }
@@ -147,7 +148,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (mounted) setState(() {});
   }
 
-  // ⭐ STOP ALARM
+  // STOP ALARM
   Future<void> _manualStopAlarm() async {
     _alarmManuallyStopped = true;
     await _stopAlarm();
@@ -194,6 +195,16 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text("Dashboard"),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: "Detection Report",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DetectionReportPage()),
+              );
+            },
+          ),
           IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
         ],
       ),

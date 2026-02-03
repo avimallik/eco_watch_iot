@@ -15,8 +15,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 DHT dht(DHTPIN, DHTTYPE);
 ESP8266WebServer server(80);
 
-const char* ssid = "Avi";
-const char* password = "01956273133";
+const char* ssid = "Gang of Ausras";
+const char* password = "oxyzen1234";
 
 unsigned long lastDHTRead = 0;
 const unsigned long DHT_INTERVAL = 2000;

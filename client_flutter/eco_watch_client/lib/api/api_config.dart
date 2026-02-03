@@ -24,4 +24,10 @@ class ApiConfig {
     final base = await getBaseUrl();
     return "$base/api/esp/status";
   }
+
+  // Detection Report API (NO JWT REQUIRED)
+  static Future<String> detectionReportUrl() async {
+    final base = await getBaseUrl();
+    return "$base/api/detection-report";
+  }
 }

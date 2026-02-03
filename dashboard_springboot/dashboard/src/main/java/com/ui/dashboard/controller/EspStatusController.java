@@ -29,7 +29,6 @@ public class EspStatusController {
     @GetMapping(value = "/api/esp/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Map<String, Object>> status(@AuthenticationPrincipal Jwt jwt) {
 
-        // endpoint authenticated()
         try {
             // last URL from DB
             String url = jdbcTemplate.queryForObject(
@@ -86,6 +85,50 @@ public class EspStatusController {
             int statusTemp = (currentTemp != null && threshTemp != null && currentTemp > threshTemp) ? 1 : 0;
             int statusMq2  = (currentMq2  != null && threshMq2  != null && currentMq2  > threshMq2)  ? 1 : 0;
 
+            // -----------------------------
+            // INSERT INTO TBL_DETECTION_REPORT (UPDATED: no null in detected_temp/mq2)
+            // -----------------------------
+            String inserted_temp_status = null;
+            String inserted_mq2_status = null;
+            String inserted_mixed_status = null;
+
+            if (statusTemp == 1) {
+                inserted_temp_status = "HIGH TEMPERATURE";
+            }
+            if (statusMq2 == 1) {
+                inserted_mq2_status = "FIRE OR SMOKE";
+            }
+            if (statusTemp == 1 && statusMq2 == 1) {
+                inserted_mixed_status = "HIGH HAZARD";
+            }
+
+            String detectedStatus = null;
+            if (inserted_mixed_status != null) {
+                detectedStatus = inserted_mixed_status;
+            } else if (inserted_temp_status != null) {
+                detectedStatus = inserted_temp_status;
+            } else if (inserted_mq2_status != null) {
+                detectedStatus = inserted_mq2_status;
+            }
+
+            // insert only if any hazard happened
+            if (detectedStatus != null) {
+
+                // ✅ Always insert current readings (no nulls from status logic)
+                Double detectedTemp = currentTemp;
+                Double detectedMq2Insert = currentMq2;
+
+                String insertSql = """
+                        INSERT INTO TBL_DETECTION_REPORT
+                          (DETECTED_TEMP, DETECTED_MQ2, TIME, DETECTED_STATUS)
+                        VALUES
+                          (?, ?, SYSTIMESTAMP, ?)
+                        """;
+
+                jdbcTemplate.update(insertSql, detectedTemp, detectedMq2Insert, detectedStatus);
+            }
+
+            // response output
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("current_temparature", currentTemp);
             out.put("current_humidity", currentHum);
@@ -97,7 +140,6 @@ public class EspStatusController {
             out.put("status_temparature", statusTemp);
             out.put("status_mq2", statusMq2);
 
-            // optional: user email
             out.put("user", jwt.getSubject());
 
             return List.of(out);
