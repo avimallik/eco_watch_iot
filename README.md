@@ -26,6 +26,8 @@ The web-based dashboard is developed using Spring Boot and is mainly used by adm
   - Security guards and safety personnel working in the bank can be registered.
   - All registration information is securely stored in an Oracle Database.
 
+![Spring Boot Dashboard Preview](preview/preview-eco_watch_iot_spring_boot_dashboard_v2.gif)
+
 ---
 
 ### 📱 Eco Watch Client (Flutter App)
@@ -43,4 +45,3 @@ Eco Watch Client is a Flutter-based mobile application installed on the smartpho
   - Shows reports of detected high smoke/gas and temperature events.
   - Includes exact date and time of each detected hazard.
 
-![Spring Boot Dashboard Preview](preview/preview-eco_watch_iot_spring_boot_dashboard_v2.gif)
